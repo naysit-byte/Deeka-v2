@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#c8960c" />
+  <meta name="description" content="ระบบสืบค้นคำพิพากษาศาลฎีกา สำหรับพนักงานอัยการ" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ค้นฎีกา" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>ค้นคำพิพากษาฎีกา</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0d0d;
+      --surface:   #161616;
+      --surface2:  #1f1f1f;
+      --border:    #2a2a2a;
+      --border2:   #383838;
+      --gold:      #c8960c;
+      --gold-dim:  #8a6508;
+      --gold-bg:   #1a1200;
+      --text:      #f0ede8;
+      --text-dim:  #888;
+      --text-mute: #444;
+      --red:       #c0392b;
+      --green:     #27ae60;
+      --radius:    10px;
+      --radius-sm: 6px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px 12px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-inner {
+      max-width: 640px; margin: 0 auto;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .emblem {
+      width: 36px; height: 36px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--gold) 0%, #e8b020 100%);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    #btn-install {
+      margin-left: auto; flex-shrink: 0;
+      padding: 6px 12px; border-radius: 6px;
+      background: var(--gold); color: #000;
+      border: none; font-family: inherit; font-size: 12px;
+      font-weight: 700; cursor: pointer; display: none;
+    }
+    #btn-install.visible { display: block; }
+    .header-text h1 {
+      font-size: 15px; font-weight: 700; color: var(--text);
+      letter-spacing: 0.01em;
+    }
+    .header-text p { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      max-width: 640px; margin: 0 auto;
+      display: flex; padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1; padding: 11px 0; border: none; background: none;
+      color: var(--text-dim); font-family: inherit; font-size: 13px;
+      font-weight: 500; cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+    /* ── Main ── */
+    main { flex: 1; padding: 16px; max-width: 640px; width: 100%; margin: 0 auto; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Search card ── */
+    .search-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+    }
+    .search-card label {
+      display: block; font-size: 12px; color: var(--text-dim);
+      font-weight: 600; letter-spacing: 0.05em; margin-bottom: 8px;
+    }
+    .input-row { display: flex; gap: 8px; }
+    input[type="text"], input[type="number"] {
+      background: var(--bg); border: 1px solid var(--border2);
+      border-radius: var(--radius-sm); padding: 10px 12px;
+      color: var(--text); font-family: inherit; font-size: 15px;
+      outline: none; width: 100%;
+      transition: border-color .15s;
+    }
+    input[type="text"]:focus, input[type="number"]:focus {
+      border-color: var(--gold-dim);
+    }
+    input::placeholder { color: var(--text-mute); }
+
+    .btn-search {
+      flex-shrink: 0; padding: 10px 18px;
+      background: var(--gold); color: #000;
+      border: none; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 14px; font-weight: 700;
+      cursor: pointer; white-space: nowrap;
+      transition: background .15s, opacity .15s;
+    }
+    .btn-search:hover { background: #e8a800; }
+    .btn-search:disabled { background: var(--border2); color: var(--text-mute); cursor: default; }
+
+    .deka-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .deka-row .field { flex: 1; }
+    .deka-row .field.narrow { flex: 0 0 110px; }
+    .deka-row .field label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
+
+    /* ── Options toggles ── */
+    .options-row {
+      display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .toggle-pill {
+      display: flex; align-items: center; gap: 7px;
+      padding: 7px 12px; border-radius: 20px; cursor: pointer;
+      border: 1px solid var(--border2); background: var(--surface);
+      transition: all .15s; user-select: none;
+    }
+    .toggle-pill.on {
+      border-color: var(--gold-dim); background: var(--gold-bg);
+    }
+    .toggle-pill span { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+    .toggle-pill.on span { color: var(--gold); }
+    .toggle-dot {
+      width: 30px; height: 16px; border-radius: 8px;
+      background: var(--border2); position: relative;
+      transition: background .2s; flex-shrink: 0;
+    }
+    .toggle-pill.on .toggle-dot { background: var(--gold); }
+    .toggle-dot::after {
+      content: ''; position: absolute;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #fff; top: 2px; left: 2px;
+      transition: left .2s;
+    }
+    .toggle-pill.on .toggle-dot::after { left: 16px; }
+
+    /* ── Quick search ── */
+    .section-label {
+      font-size: 11px; font-weight: 700; color: var(--text-mute);
+      letter-spacing: 0.07em; margin-bottom: 8px;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      padding: 5px 11px; border-radius: 16px;
+      border: 1px solid var(--border2); background: none;
+      color: var(--text-dim); font-family: inherit; font-size: 12px;
+      cursor: pointer; transition: all .15s;
+    }
+    .chip:hover { border-color: var(--gold-dim); color: var(--text); }
+
+    /* ── Open button ── */
+    .btn-open {
+      display: block; width: 100%; padding: 12px;
+      background: var(--gold); color: #000;
+      border: none; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 15px; font-weight: 700;
+      cursor: pointer; text-align: center;
+      transition: background .15s;
+    }
+    .btn-open:hover { background: #e8a800; }
+
+    /* ── Notice ── */
+    .notice {
+      background: #12100a; border: 1px solid #2a2008;
+      border-radius: var(--radius-sm); padding: 10px 12px;
+      font-size: 12px; color: #7a6830; line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .notice strong { color: #b8941a; }
+
+    /* ── History ── */
+    .history-list { display: flex; flex-direction: column; gap: 6px; }
+    .history-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      cursor: pointer; transition: border-color .15s;
+    }
+    .history-item:hover { border-color: var(--gold-dim); }
+    .history-icon { color: var(--gold-dim); font-size: 14px; flex-shrink: 0; }
+    .history-text { flex: 1; min-width: 0; }
+    .history-kw { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-meta { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+    .history-tags { display: flex; gap: 4px; flex-shrink: 0; }
+    .tag {
+      font-size: 10px; padding: 2px 6px; border-radius: 4px;
+      border: 1px solid; font-weight: 600;
+    }
+    .tag-full { color: var(--gold-dim); border-color: var(--gold-dim); background: var(--gold-bg); }
+    .tag-note { color: var(--green); border-color: var(--green); background: #0a1a0a; }
+    .btn-clear {
+      background: none; border: 1px solid var(--border2);
+      border-radius: var(--radius-sm); padding: 7px 12px;
+      color: var(--text-dim); font-family: inherit; font-size: 12px;
+      cursor: pointer; margin-bottom: 10px;
+      transition: border-color .15s, color .15s;
+    }
+    .btn-clear:hover { border-color: var(--red); color: var(--red); }
+    .empty-state {
+      text-align: center; padding: 40px 20px;
+      color: var(--text-mute); font-size: 13px;
+    }
+    .empty-state .icon { font-size: 32px; margin-bottom: 10px; }
+
+    /* ── Saved ── */
+    .saved-item {
+      display: flex; align-items: center;
+      padding: 10px 12px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      margin-bottom: 6px; gap: 10px;
+    }
+    .saved-kw { flex: 1; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text); }
+    .saved-kw:hover { color: var(--gold); }
+    .btn-del {
+      background: none; border: none; color: var(--text-mute);
+      cursor: pointer; font-size: 16px; padding: 2px 6px;
+      border-radius: 4px; transition: color .15s, background .15s;
+    }
+    .btn-del:hover { color: var(--red); background: #1a0a0a; }
+
+    .add-saved-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .add-saved-row input { flex: 1; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #222; border: 1px solid var(--border2);
+      color: var(--text); font-size: 13px; padding: 9px 16px;
+      border-radius: 20px; z-index: 9999; opacity: 0;
+      transition: opacity .2s; pointer-events: none; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── divider ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+    @media (max-width: 400px) {
+      .deka-row { flex-direction: column; }
+      .deka-row .field.narrow { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="emblem">⚖️</div>
+    <div class="header-text">
+      <h1>สืบค้นคำพิพากษาฎีกา</h1>
+      <p>เชื่อมต่อ deka.supremecourt.or.th</p>
+    </div>
+    <button id="btn-install" onclick="installApp()">📲 ติดตั้ง</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('search')">ค้นหา</button>
+  <button class="tab-btn" onclick="switchTab('history')">ประวัติ</button>
+  <button class="tab-btn" onclick="switchTab('saved')">บันทึกไว้</button>
+</div>
+
+<main>
+
+  <!-- ══ PANEL: SEARCH ══ -->
+  <div class="panel active" id="panel-search">
+
+    <div class="notice">
+      <strong>วิธีใช้:</strong> กรอกคำค้นแล้วกด "เปิดเว็บฎีกา" — จะเปิด deka.supremecourt.or.th ใน browser พร้อมคำค้นนั้น ผลการค้นหาอยู่ในเว็บต้นทางครับ
+    </div>
+
+    <!-- Options -->
+    <div class="options-row">
+      <div class="toggle-pill on" id="toggle-full" onclick="toggleOpt('full')">
+        <div class="toggle-dot"></div>
+        <span>คำพิพากษาเต็ม</span>
+      </div>
+      <div class="toggle-pill" id="toggle-note" onclick="toggleOpt('note')">
+        <div class="toggle-dot"></div>
+        <span>มีหมายเหตุ</span>
+      </div>
+    </div>
+
+    <!-- Tabs: keyword / deka number -->
+    <div class="search-card">
+      <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:1px solid var(--border);">
+        <button class="tab-btn active" id="smode-kw" onclick="switchSearchMode('kw')" style="flex:1;padding:8px 0;font-size:13px;">ค้นด้วยคำ</button>
+        <button class="tab-btn" id="smode-no" onclick="switchSearchMode('no')" style="flex:1;padding:8px 0;font-size:13px;">เลขฎีกา</button>
+      </div>
+
+      <!-- Keyword mode -->
+      <div id="mode-kw">
+        <label>คำค้นหา</label>
+        <div class="input-row">
+          <input type="text" id="kw-input" placeholder="เช่น ลักทรัพย์ เจตนาทุจริต" />
+          <button class="btn-search" onclick="doSearch()">ค้นหา</button>
+        </div>
+      </div>
+
+      <!-- Deka number mode -->
+      <div id="mode-no" style="display:none;">
+        <div class="deka-row">
+          <div class="field">
+            <label>เลขที่คดี</label>
+            <input type="text" id="no-input" placeholder="เช่น 413" />
+          </div>
+          <div class="field narrow">
+            <label>ปี พ.ศ.</label>
+            <input type="text" id="yr-input" placeholder="เช่น 2552" />
+          </div>
+        </div>
+        <button class="btn-open" onclick="doDekaSearch()">เปิดเว็บฎีกา →</button>
+      </div>
+    </div>
+
+    <!-- Quick searches -->
+    <div class="section-label">ค้นด่วน</div>
+    <div class="chips" id="quick-chips"></div>
+
+    <hr class="divider" />
+
+    <!-- Saved keywords quick access -->
+    <div id="saved-quick-wrap" style="display:none;">
+      <div class="section-label">คำที่บันทึกไว้</div>
+      <div class="chips" id="saved-quick-chips"></div>
+    </div>
+
+  </div>
+
+  <!-- ══ PANEL: HISTORY ══ -->
+  <div class="panel" id="panel-history">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="section-label" style="margin:0;">ประวัติการค้นหา</div>
+      <button class="btn-clear" onclick="clearHistory()">ล้างประวัติ</button>
+    </div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- ══ PANEL: SAVED ══ -->
+  <div class="panel" id="panel-saved">
+    <div class="section-label" style="margin-bottom:8px;">เพิ่มคำที่ใช้บ่อย</div>
+    <div class="add-saved-row">
+      <input type="text" id="save-input" placeholder="เช่น หมิ่นประมาท ร้องเรียน" />
+      <button class="btn-search" onclick="addSaved()">เพิ่ม</button>
+    </div>
+    <hr class="divider" />
+    <div class="section-label" style="margin-bottom:8px;">รายการที่บันทึก</div>
+    <div id="saved-list"></div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+const BASE = 'https://deka.supremecourt.or.th/search';
+let opts = { full: true, note: false };
+
+const QUICK = [
+  'ลักทรัพย์ เจตนาทุจริต',
+  'หมิ่นประมาท ร้องเรียน ผู้บังคับบัญชา',
+  'มาตรา 329 สุจริต',
+  'ฉ้อโกง เจตนา',
+  'กรรมเดียวหลายกรรม มาตรา 90',
+  'ลักทรัพย์ ห้างสรรพสินค้า',
+  'บุกรุก เคหสถาน',
+  'ยาเสพติด ครอบครองเพื่อจำหน่าย',
+];
+
+// ── LocalStorage helpers ───────────────────────────────
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem('deka_history') || '[]'); } catch { return []; }
+}
+function setHistory(h) { localStorage.setItem('deka_history', JSON.stringify(h)); }
+function getSaved() {
+  try { return JSON.parse(localStorage.getItem('deka_saved') || '[]'); } catch { return []; }
+}
+function setSaved(s) { localStorage.setItem('deka_saved', JSON.stringify(s)); }
+function getOpts() {
+  try { return JSON.parse(localStorage.getItem('deka_opts') || 'null') || { full: true, note: false }; } catch { return { full: true, note: false }; }
+}
+function saveOpts() { localStorage.setItem('deka_opts', JSON.stringify(opts)); }
+
+// ── URL builder ────────────────────────────────────────
+// NOTE: deka.supremecourt.or.th ใช้ระบบค้นหาแบบ POST form
+// URL นี้จะเปิดหน้าหลักของเว็บ ผู้ใช้ต้องกรอกคำค้นในเว็บต้นทางเอง
+// อย่างไรก็ดี เก็บคำค้นไว้ใน history เพื่อให้ผู้ใช้ copy ไปใช้ได้
+function buildUrl(kw) {
+  // พยายาม pass keyword — เว็บอาจรองรับใน future version
+  if (kw) return BASE + '?keyword=' + encodeURIComponent(kw);
+  return BASE;
+}
+
+// ── Toggle ─────────────────────────────────────────────
+function toggleOpt(key) {
+  if (key === 'full') opts.full = !opts.full;
+  if (key === 'note') opts.note = !opts.note;
+  document.getElementById('toggle-full').classList.toggle('on', opts.full);
+  document.getElementById('toggle-note').classList.toggle('on', opts.note);
+  saveOpts();
+}
+
+// ── Tab switching ──────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  const tabs = { search: 0, history: 1, saved: 2 };
+  document.querySelectorAll('.tabs .tab-btn')[tabs[name]].classList.add('active');
+  if (name === 'history') renderHistory();
+  if (name === 'saved') renderSaved();
+}
+
+function switchSearchMode(mode) {
+  document.getElementById('mode-kw').style.display = mode === 'kw' ? 'block' : 'none';
+  document.getElementById('mode-no').style.display = mode === 'no' ? 'block' : 'none';
+  document.getElementById('smode-kw').classList.toggle('active', mode === 'kw');
+  document.getElementById('smode-no').classList.toggle('active', mode === 'no');
+}
+
+// ── Search ─────────────────────────────────────────────
+function doSearch(kw) {
+  const keyword = kw || document.getElementById('kw-input').value.trim();
+  if (!keyword) { toast('กรุณากรอกคำค้นหา'); return; }
+  openDeka(keyword, 'keyword');
+}
+
+function doDekaSearch() {
+  const no = document.getElementById('no-input').value.trim();
+  const yr = document.getElementById('yr-input').value.trim();
+  if (!no) { toast('กรุณากรอกเลขที่คดี'); return; }
+  const label = yr ? `ฎีกาที่ ${no}/${yr}` : `ฎีกาที่ ${no}`;
+  const url = yr ? `${BASE}?deka_no=${no}&deka_year=${yr}` : `${BASE}?deka_no=${no}`;
+  addToHistory({ kw: label, url, type: 'deka', full: opts.full, note: opts.note });
+  window.open(url, '_blank');
+  toast('เปิดเว็บฎีกาแล้ว');
+}
+
+function openDeka(keyword, type) {
+  const url = buildUrl(keyword);
+  addToHistory({ kw: keyword, url, type: type || 'keyword', full: opts.full, note: opts.note });
+  window.open(url, '_blank');
+  toast('เปิดเว็บฎีกาแล้ว — กรอกคำค้นในเว็บ');
+}
+
+// ── History ────────────────────────────────────────────
+function addToHistory(entry) {
+  const h = getHistory().filter(x => x.kw !== entry.kw);
+  h.unshift({ ...entry, time: Date.now() });
+  setHistory(h.slice(0, 50));
+}
+
+function renderHistory() {
+  const h = getHistory();
+  const el = document.getElementById('history-list');
+  if (!h.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">🔍</div>ยังไม่มีประวัติการค้นหา</div>';
+    return;
+  }
+  el.innerHTML = h.map((item, i) => `
+    <div class="history-item" onclick="reopenSearch(${i})">
+      <div class="history-icon">↗</div>
+      <div class="history-text">
+        <div class="history-kw">${esc(item.kw)}</div>
+        <div class="history-meta">${formatTime(item.time)}</div>
+      </div>
+      <div class="history-tags">
+        ${item.full ? '<span class="tag tag-full">เต็ม</span>' : ''}
+        ${item.note ? '<span class="tag tag-note">หมายเหตุ</span>' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function reopenSearch(i) {
+  const item = getHistory()[i];
+  if (!item) return;
+  window.open(item.url, '_blank');
+  toast('เปิดเว็บฎีกาแล้ว');
+}
+
+function clearHistory() {
+  if (!confirm('ล้างประวัติการค้นหาทั้งหมด?')) return;
+  setHistory([]);
+  renderHistory();
+  toast('ล้างประวัติแล้ว');
+}
+
+// ── Saved ──────────────────────────────────────────────
+function addSaved() {
+  const kw = document.getElementById('save-input').value.trim();
+  if (!kw) return;
+  const s = getSaved();
+  if (s.includes(kw)) { toast('มีคำนี้อยู่แล้ว'); return; }
+  s.push(kw);
+  setSaved(s);
+  document.getElementById('save-input').value = '';
+  renderSaved();
+  renderSavedQuick();
+  toast('บันทึกแล้ว');
+}
+
+function deleteSaved(kw) {
+  setSaved(getSaved().filter(x => x !== kw));
+  renderSaved();
+  renderSavedQuick();
+}
+
+function renderSaved() {
+  const s = getSaved();
+  const el = document.getElementById('saved-list');
+  if (!s.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">📌</div>ยังไม่มีคำที่บันทึกไว้<br><small>เพิ่มคำค้นที่ใช้บ่อยด้านบน</small></div>';
+    return;
+  }
+  el.innerHTML = s.map(kw => `
+    <div class="saved-item">
+      <div class="saved-kw" onclick="doSearch('${esc(kw)}')">${esc(kw)}</div>
+      <button class="btn-del" onclick="deleteSaved('${esc(kw)}')" title="ลบ">×</button>
+    </div>
+  `).join('');
+}
+
+function renderSavedQuick() {
+  const s = getSaved();
+  const wrap = document.getElementById('saved-quick-wrap');
+  const chips = document.getElementById('saved-quick-chips');
+  if (!s.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  chips.innerHTML = s.map(kw => `<button class="chip" onclick="doSearch('${esc(kw)}')">${esc(kw)}</button>`).join('');
+}
+
+// ── Quick chips ────────────────────────────────────────
+function renderQuickChips() {
+  document.getElementById('quick-chips').innerHTML =
+    QUICK.map(kw => `<button class="chip" onclick="doSearch('${esc(kw)}')">${esc(kw)}</button>`).join('');
+}
+
+// ── Utils ──────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 60) return 'เมื่อกี้';
+  if (diff < 3600) return `${Math.floor(diff/60)} นาทีที่แล้ว`;
+  if (diff < 86400) return `${Math.floor(diff/3600)} ชั่วโมงที่แล้ว`;
+  return d.toLocaleDateString('th-TH', { day:'numeric', month:'short' });
+}
+
+// ── PWA Install prompt ─────────────────────────────────
+let _installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _installPrompt = e;
+  document.getElementById('btn-install').classList.add('visible');
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('btn-install').classList.remove('visible');
+  _installPrompt = null;
+  toast('ติดตั้งแอปสำเร็จแล้ว ✓');
+});
+function installApp() {
+  if (!_installPrompt) { toast('เปิดจาก Chrome แล้วลองใหม่'); return; }
+  _installPrompt.prompt();
+  _installPrompt.userChoice.then(r => {
+    if (r.outcome === 'accepted') toast('กำลังติดตั้ง...');
+    _installPrompt = null;
+    document.getElementById('btn-install').classList.remove('visible');
+  });
+}
+
+// ── Enter key ──────────────────────────────────────────
+document.getElementById('kw-input').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+document.getElementById('no-input').addEventListener('keydown', e => { if (e.key === 'Enter') doDekaSearch(); });
+document.getElementById('yr-input').addEventListener('keydown', e => { if (e.key === 'Enter') doDekaSearch(); });
+document.getElementById('save-input').addEventListener('keydown', e => { if (e.key === 'Enter') addSaved(); });
+
+// ── Init ───────────────────────────────────────────────
+opts = getOpts();
+document.getElementById('toggle-full').classList.toggle('on', opts.full);
+document.getElementById('toggle-note').classList.toggle('on', opts.note);
+renderQuickChips();
+renderSavedQuick();
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
